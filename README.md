@@ -53,6 +53,9 @@ LLM_MODEL=qwen-max
 
 #### 步骤 一：初始化数据库与拉起爬虫
 ```bash
+# 必须先进入爬虫目录
+cd MediaCrawler
+
 # 这一步会自动建表
 python main.py --init_db mysql
 
