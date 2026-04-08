@@ -4,8 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pymysql
 import os
+from dotenv import load_dotenv
 
-app = FastAPI(title="XHS Insight Dashboard API")
+load_dotenv() # 自动加载 .env
+
+app = FastAPI(title="Skynet Miner API")
 
 app.add_middleware(
     CORSMiddleware,

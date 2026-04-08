@@ -1,9 +1,12 @@
 import os
 import json
 import pymysql
+from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel
 from typing import List, Optional
+
+load_dotenv() # 自动加载项目根目录的 .env 文件
 
 # ================= 配置区 =================
 # 您的数据库配置
