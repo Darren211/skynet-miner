@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天网痛点挖掘机 - Skynet Miner</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #ff2442; /* 小红书红 */
+            --accent-glow: rgba(255, 36, 66, 0.5);
+            --accent-secondary: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰 */
+        .ambient-light {
+            position: fixed;
+            top: -20%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .ambient-light-2 {
+            position: fixed;
+            bottom: -20%;
+            right: -10%;
+            width: 60vw;
+            height: 60vw;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 36, 66, 0.15) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 毛玻璃卡片基类 */
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* 痛点列表区 */
+        .insights-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .insight-card {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .insight-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        /* 卡片侧边发光圈 */
+        .insight-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--accent-color);
+            box-shadow: 0 0 15px var(--accent-glow);
+            border-radius: 4px 0 0 4px;
+            opacity: 0.8;
+        }
+
+        .domain-badge {
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sentiment-badge {
+            margin-left: 0.5rem;
+            background: rgba(255, 36, 66, 0.15);
+            color: #fda4af;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 36, 66, 0.3);
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .pain-point, .unmet-need {
+            margin-bottom: 1rem;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.2rem;
+            display: block;
+        }
+
+        .value {
+            font-size: 1.05rem;
+            color: #e2e8f0;
+        }
+
+        /* 强调未满足需求 */
+        .unmet-need .value {
+            color: #fbbf24;
+            font-weight: 500;
+        }
+
+        /* 侧边分析栏 */
+        .stats-panel {
+            position: sticky;
+            top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        canvas {
+            max-width: 100%;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-light"></div>
+    <div class="ambient-light-2"></div>
+    
+    <div id="app" class="container">
+        <header>
+            <h1>天网痛点挖掘机</h1>
+            <p>无死角捕获全网吐槽的终极监控网络 🌐⚡</p>
+            
+            <div style="margin-top: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                <input 
+                    type="text" 
+                    v-model="searchQuery" 
+                    @keyup.enter="fetchData"
+                    placeholder="🔍 输入赛道、痛点或需求关键词回车查询..." 
+                    style="width: 100%; padding: 0.8rem 1.5rem; border-radius: 30px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-primary); outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-size: 1rem; backdrop-filter: blur(10px);"
+                >
+            </div>
+        </header>
+
+        <div v-if="loading && insights.length === 0" class="loading-state pulse">
+            正在从大模型清洗缓存中读取痛点数据...
+        </div>
+
+        <div v-else class="dashboard-grid">
+            <!-- 左侧列表 -->
+            <div class="insights-container">
+                <div v-if="insights.length === 0" class="glass-panel" style="text-align:center; padding:3rem;">
+                    数据正在赶来的路上... 请先确保后端的 Python 分析脚本在运行！
+                </div>
+                
+                <div v-for="item in insights" :key="item.id" class="glass-panel insight-card">
+                    <div>
+                        <span class="domain-badge">{{ item.domain || '未知领域' }}</span>
+                        <span class="sentiment-badge">{{ item.sentiment || '无情绪' }}</span>
+                        
+                        <div class="pain-point mt-3">
+                            <span class="label">💔 用户核心痛点</span>
+                            <div class="value">{{ item.pain_point }}</div>
+                        </div>
+                        
+                        <div class="unmet-need">
+                            <span class="label">💡 潜在未满足需求 (商业机会)</span>
+                            <div class="value">{{ item.unmet_need || '大模型未能提炼出结论暂无' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧统计区 -->
+            <div class="stats-panel">
+                <div class="glass-panel">
+                    <h3 style="margin-bottom: 1.5rem; text-align: center;">🔥 热门抱怨赛道排行</h3>
+                    <div v-for="(stat, index) in stats" :key="index" class="stat-item">
+                        <span style="color:#cbd5e1; font-weight:500;">{{ stat.domain }}</span>
+                        <span style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.8rem; border-radius: 12px; font-size:0.9rem;">
+                            {{ stat.count }} 贴
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="glass-panel" style="text-align: center;">
+                    <p style="font-size:0.9rem; color: var(--text-secondary); margin-bottom:1rem;">雷达趋势</p>
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const insights = ref([]);
+                const stats = ref([]);
+                const loading = ref(true);
+                const searchQuery = ref("");
+
+                const renderChart = (data) => {
+                    const ctx = document.getElementById('radarChart');
+                    if (!ctx) return;
+                    
+                    const labels = data.map(d => d.domain);
+                    const values = data.map(d => d.count);
+
+                    new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: '痛点热度',
+                                data: values,
+                                backgroundColor: 'rgba(255, 36, 66, 0.2)',
+                                borderColor: 'rgba(255, 36, 66, 0.8)',
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#ff2442',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: '#ff2442',
+                                borderWidth: 2,
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                r: {
+                                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                    pointLabels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } },
+                                    ticks: { display: false }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                }
+
+                const fetchData = async () => {
+                    try {
+                        let url = 'http://127.0.0.1:8000/api/insights';
+                        if (searchQuery.value) {
+                            url += '?keyword=' + encodeURIComponent(searchQuery.value);
+                        }
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if(data.status === 'success') {
+                            insights.value = data.data;
+                            stats.value = data.stats;
+                            
+                            if (stats.value.length > 2) {
+                                nextTick(() => {
+                                    renderChart(stats.value);
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error("获取数据失败:", e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                onMounted(() => {
+                    fetchData();
+                    // 每 15 秒刷新一次最新数据
+                    setInterval(fetchData, 15000);
+                });
+
+                return {
+                    insights, stats, loading, searchQuery, fetchData
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
